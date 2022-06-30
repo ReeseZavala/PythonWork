@@ -17,6 +17,7 @@ This is a temporary script file.
 
 import pandas as pd
 import os
+import numpy as np
 
 inputFile  = "visitData.csv"
 path = 'C:\\Users\\rzava\\OneDrive\\Documents\\Work\\ER Bullshit'
@@ -78,44 +79,28 @@ telRooms = estimateRooms(data = RHMtel, dates = 'Date', times = 'Appointment_Len
 allRooms = estimateRooms(data = RHMnot, dates = 'Date', times = 'Appointment_Length', hours = 8)
 
 
+#######  GENERAL STATISTICS  #######
+###   Structure:
+###   Division      Min      Max      Mean      Alotted
 
+Split = ["Infusion Only", "In-Person Exams", "Telehealth Exams", "All Exams"]
+Alotted = [7, 10, 0, 10]
+genList = [infRooms, elsRooms, telRooms, allRooms]
+minis = []
+maxis = []
+meanis= []
+for i in genList:
+    minis.append(min(i['Rooms']))
+    maxis.append(max(i['Rooms']))
+    meanis.append(np.mean(i['Rooms']))
 
+Report = pd.DataFrame({"Appointment Division": Split, 
+                       "Minimum Used": minis,
+                       "Maximum Used": maxis,
+                       "Average Usage": meanis,
+                       "Alotted Space": Alotted})
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Report.to_csv("Quick Report.csv")
 
 
 
