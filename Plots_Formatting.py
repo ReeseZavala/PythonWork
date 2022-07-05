@@ -12,6 +12,7 @@ path = 'C:\\Users\\rzava\\OneDrive\\Documents\\Work\\ER Bullshit'
 os.chdir(path)
 import pandas as pd
 from RoomEstimation_RHM import estimateRooms
+import plotly.graph_objs as go
 import numpy as np
 import plotly.express as px
 from datetime import datetime as dt
@@ -20,6 +21,7 @@ from datetime import datetime as dt
 ################## STANDARD DATA READING/TRANSFORMATION ######################
 ##############################################################################
 vDat = pd.read_csv(inputFile)
+
 RHM = vDat[vDat['Department_Name'].str.contains("RHM")]
 ## DF of just infusions b/c different rooms
 RHMinf = RHM[RHM['Visit_ID'] == 6965]
@@ -64,6 +66,16 @@ infRooms['Date'] = hold
 infRooms = infRooms.sort_values(by = 'Date')
 infRooms = infRooms.round(2)
 
+## Loop turning strings into date values.  Could probably do this earlier in
+#  ETL, but might fuck something up, so doing it now for display purposes
+hold = []
+for i in Exams['Date']:
+    hold.append(dt.strptime(i, '%m/%d/%Y'))
+Exams['Date'] = hold
+## And then sorting so it's not fucky, and rounding decimals so rooms don't 
+#  freak out business bois for having 4 decimals
+Exams = Exams.sort_values(by = 'Date')
+Exams = Exams.round(2)
 
 
 
@@ -75,20 +87,55 @@ infRooms = infRooms.round(2)
 
 infRooms = infRooms.rename(columns = {'Rooms' : 'Chairs'})
 ## Plot object, changing hover date format
-inFig = px.line(infRooms, x = "Date", y = "Chairs", hover_data={"Date":"|%B %d"})
+inFig = px.line(infRooms, x = "Date", y = "Chairs", hover_data={"Date":"|%B %d"},
+                color = "Breakdown")
 ## Adding title, title location, blank background, titling axes, TNR font
 inFig.update_layout(title = {'text': "Rheumatology Infusion Chairs Estimated Use", 
                              'x': .5, 'y':.95},
                              plot_bgcolor = "white",
                              yaxis_title = "Chairs Used",
-                             font_family = "Times New Roman")
+                             font_family = "Times New Roman",
+                             hovermode = 'x unified')
 ## Get Axes lines to show, format date
 inFig.update_xaxes(showline = True, linewidth = 1, linecolor = 'black', 
                    dtick = "M1", tickformat = "%b \n%Y")
 inFig.update_yaxes(showline = True, linewidth = 1, linecolor = 'black')
 ## Add rooms available
-inFig.add_hline(y = 7, line_dash="dash", line_color="yellow", 
-                annotation_text = "Chairs Available", 
-                annotation_position = "top right")
+inFig.add_trace(go.Scatter(x = infRooms['Date'], 
+                           y = np.repeat(7, len(infRooms['Date'])), 
+                           line_dash="dash", 
+                           line_color="yellow", 
+                           #hover_data = "Chairs Available"
+                           showlegend = True,
+                           name = "Chairs Available")
+                )
 inFig.write_html("infusion.html")
 
+###############################################################################
+############################      EXAMS PLOT      #############################
+###############################################################################
+
+## Plot object, changing hover date format
+exFig = px.line(Exams, x = "Date", y = "Rooms", hover_data={"Date":"|%B %d"},
+                color = "Breakdown")
+## Adding title, title location, blank background, titling axes, TNR font
+exFig.update_layout(title = {'text': "Rheumatology Exam Rooms Estimated Use", 
+                             'x': .5, 'y':.95},
+                             plot_bgcolor = "white",
+                             yaxis_title = "Rooms Used",
+                             font_family = "Times New Roman",
+                             hovermode = 'x unified')
+## Get Axes lines to show, format date
+exFig.update_xaxes(showline = True, linewidth = 1, linecolor = 'black', 
+                   dtick = "M1", tickformat = "%b \n%Y")
+exFig.update_yaxes(showline = True, linewidth = 1, linecolor = 'black')
+## Add rooms available
+exFig.add_trace(go.Scatter(x = Exams['Date'], 
+                           y = np.repeat(10, len(hold)), 
+                           line_dash="dash", 
+                           line_color="yellow", 
+                           #hover_data = "Chairs Available"
+                           showlegend = True,
+                           name = "Rooms Available")
+                )
+exFig.write_html("Rooms.html")
