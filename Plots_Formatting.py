@@ -24,23 +24,33 @@ vDat = pd.read_csv(inputFile)
 
 
 RHM = vDat[vDat['Department_Name'].str.contains("RHM")]
+NHT = vDat[vDat['Department_Name'].str.contains("NHT TRANS MED PPV 4")]
 ## DF of just infusions b/c different rooms
 RHMinf = RHM[RHM['Visit_ID'] == 6965]
 RHMnot = RHM[RHM['Visit_ID'] != 6965]
 ## DF of all in-person visits, not infusions
-#  fjuu = RHM[RHM['Visit_Type'].str.contains('VIRTUAL')]
-#  set(fjuu['Visit_ID'])
+# =============================================================================
+# fjuu = NHT[NHT['Visit_Type'].str.contains('VIRTUAL')]
+# set(fjuu['Visit_ID'])
+# =============================================================================
 RHMels = RHM[~RHM['Visit_ID'].isin([6965, 7421, 7557, 7580, 21037, 21031, 21039])]
+trnExm = NHT[NHT['Visit_ID'] != 7421] 
 ## DF of all virtual visits
 RHMtel = RHM[RHM['Visit_ID'].isin([7421, 7557, 7580, 21037, 21031, 21039])]
+trnTel = NHT[NHT['Visit_ID'] != 7421]
 
 infRooms = estimateRooms(data = RHMinf, dates = 'Date', times = 'Appointment_Length', hours = 8)
 elsRooms = estimateRooms(data = RHMels, dates = 'Date', times = 'Appointment_Length', hours = 8)
 telRooms = estimateRooms(data = RHMtel, dates = 'Date', times = 'Appointment_Length', hours = 8)
 allRooms = estimateRooms(data = RHMnot, dates = 'Date', times = 'Appointment_Length', hours = 8)
+trVRooms = estimateRooms(data = trnTel, dates = 'Date', times = 'Appointment_Length', hours = 8)
+trnRooms = estimateRooms(data = trnExm, dates = 'Date', times = 'Appointment_Length', hours = 8)
 ##############################################################################
 ##############################################################################
 ##############################################################################
+
+
+
 
 ##############################################################################
 ###########     GENERATE WEEKDAYS FUNCTION     ###############################
@@ -71,17 +81,27 @@ def getWeekdays(data, dateVar):
 ##  Add average rooom usage mark
 ##  Perhaps separate plot for infusion
 
+## Adding 'Breakdown' variable for the visit type
 infRooms = infRooms.assign(Breakdown = 'Infusion Visits')
 elsRooms = elsRooms.assign(Breakdown = 'In Person Exam Visits')
 telRooms = telRooms.assign(Breakdown = 'Tele-Exam Visits')
 allRooms = allRooms.assign(Breakdown = 'All Exam Visits')
+trVRooms = trVRooms.assign(Breakdown = 'Tele-Exam Visits')
+trnRooms = trnRooms.assign(Breakdown = 'In Person Exam Visits')
+## Adding 'Department' variable for timeshare distinction
+trVRooms = trVRooms.assign(Department = 'NHT')
+trnRooms = trnRooms.assign(Department = 'NHT')
 
 ## DF of all exams
 Exams = pd.concat([elsRooms, telRooms, allRooms])
+Exams = Exams.assign(Department = 'RHM')
+Exams = pd.concat([Exams, trVRooms, trnRooms])
 
 infRooms = getWeekdays(infRooms, 'Date')
 allRooms = getWeekdays(allRooms, 'Date')
 Exams    = getWeekdays(Exams, 'Date')
+## Do this otherwise iterating is wacked the fuck out
+Exams = Exams.reset_index()
 ###############################################################################
 ###########################      INFUSION PLOT      ###########################
 ###############################################################################
@@ -245,9 +265,18 @@ exFig.write_html("Rooms.html")
 ###############################################################################
 ############################    EXAMS DAY BARPT    ############################
 ###############################################################################
+### Data management
+## First, incorporate timeshares
+allClinics = pd.DataFrame()
+## Why the fuck is this how I have to do it the fuck
+for i in range(0,len(Exams)):
+    if Exams['Breakdown'][i] == 'In Person Exam Visits':
+        allClinics = allClinics.append(Exams.iloc[[i]])
+    elif Exams['Breakdown'][i] == 'Tele-Exam Visits':
+        allClinics = allClinics.append(Exams.iloc[[i]])
+            ###########################################################
 
-
-allFig = px.bar(allRooms, x = "Date", y = "Rooms", hover_data={"Date":"|%B %d"},
+allFig = px.bar(allClinics, x = "Date", y = "Rooms", #hover_data={"Date":"|%B %d"},
                 color = "Weekday")
 ## Adding title, title location, blank background, titling axes, TNR font
 allFig.update_layout(title = {'text': "Rheumatology Exam Rooms Estimated Use, All Exam Types", 
@@ -255,7 +284,8 @@ allFig.update_layout(title = {'text': "Rheumatology Exam Rooms Estimated Use, Al
                              plot_bgcolor = "white",
                              yaxis_title = "Rooms Used",
                              font_family = "Times New Roman",
-                             hovermode = 'x unified')
+                             #hovermode = 'x unified'
+                             )
 ## Get Axes lines to show, format date
 allFig.update_xaxes(showline = True, linewidth = 2, linecolor = 'black', 
                    showgrid = True, gridwidth = 1, gridcolor = 'black', 
@@ -325,28 +355,43 @@ allFig.write_html("All Exams By Day Bars.html")
 ###############################################################################
 ############################    WEEKDAY BARPLOT    ############################
 ###############################################################################
+### Adjusting plot format to distinguish between departments
 ## First let's do some aggregation
-dayzz = list(set(allRooms['Weekday']))
+dayzz = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+dept  = list(set(Exams['Department']))
 # Empty list for room estimates
 rooms = []
+who    = []
+dizzy = []
 # for loop iterating over unique dates
 for i in dayzz:
-    # subset df to day i
-    now  = allRooms[allRooms['Weekday'] == i]
-    # total time on appointments
-    rooms.append(np.mean(now['Rooms']))
+        # subset df to day i
+    for j in dept:
+        now  = Exams[Exams['Weekday'] == i]
+        now = now[now['Department'] == j]
+        means = np.mean(now['Rooms'])
+        # total time on appointments
+        if np.isnan(means):
+            rooms.append(0)
+        else:
+            rooms.append(means)
+        who.append(j)
+        dizzy.append(i)
 
-examDays = pd.DataFrame({'Day' : dayzz, 
-                         'Rooms': rooms})
+
+examDays = pd.DataFrame({'Day' : dizzy, 
+                         'Rooms': rooms,
+                         'Department' : who})
 examDays = examDays.round(2)
 
 
-dayEx= px.bar(examDays, x = 'Day', y = 'Rooms')
+dayEx= px.bar(examDays, x = 'Day', y = 'Rooms', color = 'Department')
 dayEx.update_layout(title = {'text': "Exam Room Use by Weekday", 
                              'x': .5, 'y':.95},
                              plot_bgcolor = "white",
                              yaxis_title = "Rooms Used",
-                             font_family = "Times New Roman")
+                             font_family = "Times New Roman",
+                             barmode = 'stack')
 ## Get Axes lines to show, format date
 dayEx.update_xaxes(showline = True, linewidth = 2, linecolor = 'black')
 dayEx.update_yaxes(showline = True, linewidth = 2, linecolor = 'black')
@@ -419,4 +464,12 @@ dayInf.add_trace(go.Scatter(x = infDays['Day'],
 )
 
 dayInf.write_html("Average Infusion Chairs by Day.html")
+
+
+
+
+
+
+
+
 
