@@ -21,7 +21,10 @@ from datetime import datetime as dt
 ################## STANDARD DATA READING/TRANSFORMATION ######################
 ##############################################################################
 vDat = pd.read_csv(inputFile)
-
+# =============================================================================
+# vDat.loc[len(vDat)] = ['2/28/2022,' 'PPV', '*Unspecified', 'RHM', '*Unspecified', 
+#                     '*Unspecified', '*Unspecified', '*Unspecified', 0]
+# =============================================================================
 
 RHM = vDat[vDat['Department_Name'].str.contains("RHM")]
 NHT = vDat[vDat['Department_Name'].str.contains("NHT TRANS MED PPV 4")]
@@ -37,7 +40,7 @@ RHMels = RHM[~RHM['Visit_ID'].isin([6965, 7421, 7557, 7580, 21037, 21031, 21039]
 trnExm = NHT[NHT['Visit_ID'] != 7421] 
 ## DF of all virtual visits
 RHMtel = RHM[RHM['Visit_ID'].isin([7421, 7557, 7580, 21037, 21031, 21039])]
-trnTel = NHT[NHT['Visit_ID'] != 7421]
+trnTel = NHT[NHT['Visit_ID'] == 7421]
 
 infRooms = estimateRooms(data = RHMinf, dates = 'Date', times = 'Appointment_Length', hours = 8)
 elsRooms = estimateRooms(data = RHMels, dates = 'Date', times = 'Appointment_Length', hours = 8)
@@ -83,11 +86,11 @@ def getWeekdays(data, dateVar):
 
 ## Adding 'Breakdown' variable for the visit type
 infRooms = infRooms.assign(Breakdown = 'Infusion Visits')
-elsRooms = elsRooms.assign(Breakdown = 'In Person Exam Visits')
-telRooms = telRooms.assign(Breakdown = 'Tele-Exam Visits')
+elsRooms = elsRooms.assign(Breakdown = 'RHM: In Person Exam Visits')
+telRooms = telRooms.assign(Breakdown = 'RHM: Tele-Exam Visits')
 allRooms = allRooms.assign(Breakdown = 'All Exam Visits')
-trVRooms = trVRooms.assign(Breakdown = 'Tele-Exam Visits')
-trnRooms = trnRooms.assign(Breakdown = 'In Person Exam Visits')
+trVRooms = trVRooms.assign(Breakdown = 'NHT: Tele-Exam Visits')
+trnRooms = trnRooms.assign(Breakdown = 'NHT: In Person Exam Visits')
 ## Adding 'Department' variable for timeshare distinction
 trVRooms = trVRooms.assign(Department = 'NHT')
 trnRooms = trnRooms.assign(Department = 'NHT')
@@ -102,6 +105,12 @@ allRooms = getWeekdays(allRooms, 'Date')
 Exams    = getWeekdays(Exams, 'Date')
 ## Do this otherwise iterating is wacked the fuck out
 Exams = Exams.reset_index()
+
+## Adding mondays because business people get sad if they have to think
+infRooms.loc[len(infRooms)] = [dt.strptime('2/28/2022', '%m/%d/%Y'), 0, 'nan', 'Monday']
+Exams.loc[len(Exams)] = [len(Exams), dt.strptime('2/28/2022', '%m/%d/%Y'), 0, 'nan', 'nan','Monday']
+
+
 ###############################################################################
 ###########################      INFUSION PLOT      ###########################
 ###############################################################################
@@ -270,9 +279,10 @@ exFig.write_html("Rooms.html")
 allClinics = pd.DataFrame()
 ## Why the fuck is this how I have to do it the fuck
 for i in range(0,len(Exams)):
-    if Exams['Breakdown'][i] == 'In Person Exam Visits':
+    buddy = Exams['Breakdown'][i]
+    if 'In Person Exam Visits' in buddy:
         allClinics = allClinics.append(Exams.iloc[[i]])
-    elif Exams['Breakdown'][i] == 'Tele-Exam Visits':
+    elif 'Tele-Exam Visits' in buddy:
         allClinics = allClinics.append(Exams.iloc[[i]])
             ###########################################################
 
@@ -352,6 +362,89 @@ allFig.update_layout(
 
 
 allFig.write_html("All Exams By Day Bars.html")
+
+
+###############################################################################
+############################    EXAMS DAY BARPT    ############################
+############################    DEPT COLOR CODE    ############################
+###############################################################################
+
+allFig = px.bar(allClinics, x = "Date", y = "Rooms", #hover_data={"Date":"|%B %d"},
+                color = "Breakdown", barmode = "stack")
+## Adding title, title location, blank background, titling axes, TNR font
+allFig.update_layout(title = {'text': "Rheumatology Exam Rooms Estimated Use, All Exam Types", 
+                             'x': .5, 'y':.95},
+                             plot_bgcolor = "white",
+                             yaxis_title = "Rooms Used",
+                             font_family = "Times New Roman",
+                             #hovermode = 'x unified'
+                             )
+## Get Axes lines to show, format date
+allFig.update_xaxes(showline = True, linewidth = 2, linecolor = 'black', 
+                   showgrid = True, gridwidth = 1, gridcolor = 'black', 
+                   tick0 = '2022-02-28',
+                   dtick = 86400000.0 * 7, tickformat = "%d - %b \n%Y")
+allFig.update_yaxes(showline = True, linewidth = 2, linecolor = 'black')
+## Add rooms available
+allFig.add_trace(go.Scatter(x = Exams['Date'], 
+                           y = np.repeat(9, len(Exams['Date'])), 
+                           line_dash="dash", 
+                           line_color="yellow", 
+                           #hover_data = "Chairs Available"
+                           showlegend = True,
+                           name = "Rooms Available")
+                )
+## Add 80% Benchmark
+allFig.add_trace(go.Scatter(x = infRooms['Date'], 
+                           y = np.repeat(7, len(infRooms['Date'])), 
+                           line_dash="dash", 
+                           line_color="gold", 
+                           #hover_data = "Chairs Available"
+                           showlegend = True,
+                           name = "80% Benchmark")
+                )
+## Add range slider
+#  Note that weeks are 8 days so that grids show up in presentation, this makes
+#  it easier to slide with reference up
+
+allFig.update_layout(
+    xaxis=dict(
+        rangeselector=dict(
+            buttons=list([
+                dict(count=8,
+                     label="This Week",
+                     step="day",
+                     stepmode="todate"),
+                dict(count=1,
+                     label="This Month",
+                     step="month",
+                     stepmode="todate"),
+                dict(count=8,
+                     label="Last Week",
+                     step="day",
+                     stepmode="backward"),
+                dict(count=1,
+                     label="Last Month",
+                     step="month",
+                     stepmode="backward"),
+                dict(count=1,
+                     label="This Year",
+                     step="year",
+                     stepmode="todate"),
+                dict(step="all")
+            ])
+        ),
+        rangeslider=dict(
+            visible=True
+        ),
+        type="date"
+    )
+)
+
+
+
+
+allFig.write_html("All Exams By Dept Bars.html")
 ###############################################################################
 ############################    WEEKDAY BARPLOT    ############################
 ###############################################################################
@@ -464,12 +557,4 @@ dayInf.add_trace(go.Scatter(x = infDays['Day'],
 )
 
 dayInf.write_html("Average Infusion Chairs by Day.html")
-
-
-
-
-
-
-
-
 
