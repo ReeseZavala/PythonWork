@@ -1,0 +1,193 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jul 25 11:37:53 2022
+
+@author: rzava
+"""
+
+
+######################## TO DO ##################################
+### Need to add try, pass for when ts_dics are empty
+##  adjust fun default order
+##  Concatonate all the lil dfs into big Exam DF
+##  then it's all just plots I guess
+
+
+
+
+from RoomEstimation_RHM import estimateRooms
+from Plots_Formatting import getWeekdays
+from datetime import datetime as dt
+import os
+import pandas as pd
+import plotly.graph_objs as go
+import numpy as np
+import plotly.express as px
+
+inputFile = "visitData.csv"
+path = 'C:\\Users\\rzava\\OneDrive\\Documents\\Work\\ER Bullshit'
+
+
+
+
+def RUT(DATA, deptSearch, mainDic, specialDic, examRooms, specialtySpace, 
+        timeShare = False, specialtyNeeded = False, ts1Dic, ts2Dic = None, 
+        ts3Dic = None, ts4Dic = None, ts5Dic = None):
+## Beginning with narrowing down dataset to only departments using the space
+    allDeptsRaw = DATA[~DATA['Department Name'].isin(deptSearch)]
+## Now need to further parse the data if there are timeshares or specialties
+    if specialtyNeeded == True:
+## creating specialAll df for specialty spaces
+#  resetting allDeptsRaw to not include specialties
+        specialAll = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(specialDic["Codes"])]
+        allDeptsRaw = allDeptsRaw[~allDeptsRaw['Visit_ID'].isin(specialDic["Codes"])]
+    else:
+        pass
+
+    if timeShare == True:
+## dividing each timeshare into its own dfs
+#  All--all exams, IPE--in person exams, THE--telehealth exams
+        mainAll = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(mainDic['Virtual'] 
+                                                            + mainDic['In Person'])]
+        mainIPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(mainDic['In Person'])]
+        mainTHE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(mainDic['Virtual'])]
+        ## Timeshare 1##
+        ts1All = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts1Dic['Virtual'] 
+                                                            + ts1Dic['In Person'])]
+        ts1IPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts1Dic['In Person'])]
+        ts1THE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts1Dic['Virtual'])]
+        try:
+            ## Timeshare 2##
+            ts2All = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts2Dic['Virtual'] 
+                                                                + ts2Dic['In Person'])]
+            ts2IPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts2Dic['In Person'])]
+            ts2THE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts2Dic['Virtual'])]
+        except:
+            pass
+        try:
+            ## Timeshare 3##
+            ts3All = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts3Dic['Virtual'] 
+                                                                + ts3Dic['In Person'])]
+            ts3IPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts3Dic['In Person'])]
+            ts3THE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts3Dic['Virtual'])]
+        except: 
+            pass
+        try:
+            ## Timeshare 4##
+            ts4All = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts4Dic['Virtual'] 
+                                                                + ts4Dic['In Person'])]
+            ts4IPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts4Dic['In Person'])]
+            ts4THE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts4Dic['Virtual'])]
+        except:
+            pass
+        try:
+            ## Timeshare 5##
+            ts5All = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts5Dic['Virtual'] 
+                                                                + ts5Dic['In Person'])]
+            ts5IPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts5Dic['In Person'])]
+            ts5THE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts5Dic['Virtual'])]
+        except:
+            pass
+## Room Estimation Function
+        mainAllRooms = estimateRooms(data = mainAll, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
+        mainIPERooms = estimateRooms(data = mainIPE, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
+        mainTHERooms = estimateRooms(data = mainTHE, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
+## breakdown and department
+        mainAllRooms = mainAllRooms.assign(Breakdown = 'All Exam Visits')
+        mainIPERooms = mainAllRooms.assign(Breakdown = mainDic['Name'] + ': In Person Exam Visits')
+        mainTHERooms = mainAllRooms.assign(Breakdown = mainDic['Name'] + ': Tele-Exam Visits')
+        mainAllRooms = mainAllRooms.assign(Department = mainDic['Name'])
+        mainIPERooms = mainAllRooms.assign(Department = mainDic['Name'])
+        mainTHERooms = mainAllRooms.assign(Department = mainDic['Name'])
+        ## Timeshare 1##
+        ts1AllRooms = estimateRooms(data = ts1All, dates = 'Date', times = 'Appointment_Length', hours = ts1Dic["Hours"])
+        ts1IPERooms = estimateRooms(data = ts1IPE, dates = 'Date', times = 'Appointment_Length', hours = ts1Dic["Hours"])
+        ts1THERooms = estimateRooms(data = ts1THE, dates = 'Date', times = 'Appointment_Length', hours = ts1Dic["Hours"])
+## breakdown and department
+        ts1AllRooms = ts1AllRooms.assign(Breakdown = 'All Exam Visits')
+        ts1IPERooms = ts1AllRooms.assign(Breakdown = ts1Dic['Name'] + ': In Person Exam Visits')
+        ts1THERooms = ts1AllRooms.assign(Breakdown = ts1Dic['Name'] + ': Tele-Exam Visits')
+        ts1AllRooms = ts1AllRooms.assign(Department = ts1Dic['Name'])
+        ts1IPERooms = ts1AllRooms.assign(Department = ts1Dic['Name'])
+        ts1THERooms = ts1AllRooms.assign(Department = ts1Dic['Name'])
+        ## Timeshare 2##
+        ts2AllRooms = estimateRooms(data = ts2All, dates = 'Date', times = 'Appointment_Length', hours = ts2Dic["Hours"])
+        ts2IPERooms = estimateRooms(data = ts2IPE, dates = 'Date', times = 'Appointment_Length', hours = ts2Dic["Hours"])
+        ts2THERooms = estimateRooms(data = ts2THE, dates = 'Date', times = 'Appointment_Length', hours = ts2Dic["Hours"])
+## breakdown and department
+        ts2AllRooms = ts2AllRooms.assign(Breakdown = 'All Exam Visits')
+        ts2IPERooms = ts2AllRooms.assign(Breakdown = ts2Dic['Name'] + ': In Person Exam Visits')
+        ts2THERooms = ts2AllRooms.assign(Breakdown = ts2Dic['Name'] + ': Tele-Exam Visits')
+        ts2AllRooms = ts2AllRooms.assign(Department = ts2Dic['Name'])
+        ts2IPERooms = ts2AllRooms.assign(Department = ts2Dic['Name'])
+        ts2THERooms = ts2AllRooms.assign(Department = ts2Dic['Name'])
+        ## Timeshare 3##
+        ts3AllRooms = estimateRooms(data = ts3All, dates = 'Date', times = 'Appointment_Length', hours = ts3Dic["Hours"])
+        ts3IPERooms = estimateRooms(data = ts3IPE, dates = 'Date', times = 'Appointment_Length', hours = ts3Dic["Hours"])
+        ts3THERooms = estimateRooms(data = ts3THE, dates = 'Date', times = 'Appointment_Length', hours = ts3Dic["Hours"])
+## breakdown and department
+        ts3AllRooms = ts3AllRooms.assign(Breakdown = 'All Exam Visits')
+        ts3IPERooms = ts3AllRooms.assign(Breakdown = ts3Dic['Name'] + ': In Person Exam Visits')
+        ts3THERooms = ts3AllRooms.assign(Breakdown = ts3Dic['Name'] + ': Tele-Exam Visits')
+        ts3AllRooms = ts3AllRooms.assign(Department = ts3Dic['Name'])
+        ts3IPERooms = ts3AllRooms.assign(Department = ts3Dic['Name'])
+        ts3THERooms = ts3AllRooms.assign(Department = ts3Dic['Name'])
+        ## Timeshare 4##
+        ts4AllRooms = estimateRooms(data = ts4All, dates = 'Date', times = 'Appointment_Length', hours = ts4Dic["Hours"])
+        ts4IPERooms = estimateRooms(data = ts4IPE, dates = 'Date', times = 'Appointment_Length', hours = ts4Dic["Hours"])
+        ts4THERooms = estimateRooms(data = ts4THE, dates = 'Date', times = 'Appointment_Length', hours = ts4Dic["Hours"])
+## breakdown and department
+        ts4AllRooms = ts4AllRooms.assign(Breakdown = 'All Exam Visits')
+        ts4IPERooms = ts4AllRooms.assign(Breakdown = ts4Dic['Name'] + ': In Person Exam Visits')
+        ts4THERooms = ts4AllRooms.assign(Breakdown = ts4Dic['Name'] + ': Tele-Exam Visits')
+        ts4AllRooms = ts4AllRooms.assign(Department = ts4Dic['Name'])
+        ts4IPERooms = ts4AllRooms.assign(Department = ts4Dic['Name'])
+        ts4THERooms = ts4AllRooms.assign(Department = ts4Dic['Name'])
+        ## Timeshare 5##
+        ts5AllRooms = estimateRooms(data = ts5All, dates = 'Date', times = 'Appointment_Length', hours = ts5Dic["Hours"])
+        ts5IPERooms = estimateRooms(data = ts5IPE, dates = 'Date', times = 'Appointment_Length', hours = ts5Dic["Hours"])
+        ts5THERooms = estimateRooms(data = ts5THE, dates = 'Date', times = 'Appointment_Length', hours = ts5Dic["Hours"])
+## breakdown and department
+        ts5AllRooms = ts5AllRooms.assign(Breakdown = 'All Exam Visits')
+        ts5IPERooms = ts5AllRooms.assign(Breakdown = ts1Dic['Name'] + ': In Person Exam Visits')
+        ts5THERooms = ts5AllRooms.assign(Breakdown = ts1Dic['Name'] + ': Tele-Exam Visits')
+        ts5AllRooms = ts5AllRooms.assign(Department = ts1Dic['Name'])
+        ts5IPERooms = ts5AllRooms.assign(Department = ts1Dic['Name'])
+        ts5THERooms = ts5AllRooms.assign(Department = ts1Dic['Name'])
+## Now to push it all into one DF
+        Exams = pd.concat([mainAllRooms, mainIPERooms, mainTHERooms,
+                           ts1AllRooms, ts1IPERooms, ts1THERooms,
+                           ts2AllRooms, ts2IPERooms, ts2THERooms,
+                           ts3AllRooms, ts3IPERooms, ts3THERooms,
+                           ts4AllRooms, ts4IPERooms, ts4THERooms,
+                           ts5AllRooms, ts5IPERooms, ts5THERooms])
+    else:
+        mainAllRooms = estimateRooms(data = allDeptsRaw, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
+        mainIPERooms = estimateRooms(data = allDeptsRaw, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
+        mainTHERooms = estimateRooms(data = allDeptsRaw, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
+## Adding breakdowns and departments
+        ## Main, breakdown then Dept
+        mainAllRooms = mainAllRooms.assign(Breakdown = 'All Exam Visits')
+        mainIPERooms = mainAllRooms.assign(Breakdown = mainDic['Name'] + ': In Person Exam Visits')
+        mainTHERooms = mainAllRooms.assign(Breakdown = mainDic['Name'] + ': Tele-Exam Visits')
+        mainAllRooms = mainAllRooms.assign(Department = mainDic['Name'])
+        mainIPERooms = mainAllRooms.assign(Department = mainDic['Name'])
+        mainTHERooms = mainAllRooms.assign(Department = mainDic['Name'])
+## Now to push it all into one DF
+        Exams = pd.concat([mainAllRooms, mainIPERooms, mainTHERooms])
+
+## So now the Exams will always work cuz I'm a fucking genus
+#  Moving on to adding labels to make the lil datasets cute
+
+## DATA         -- dataset from Epic, structured with proper column names
+## deptSearch   -- list of strings, full department names in Epic
+## All Dics     -- dictionaries formatted {"Name" : "Name of Department", 
+##                                         "Virtual: [virtual visti epic codes]
+##                                         "In Person":[in person visit codes],
+##                                         "Hours" : hours in a session (int)}
+## SpecialDic   -- dictionary formatted {"Name" : "Name of specialty",
+##                                       "Codes": [list of Epic codes],
+##                                       "Hours": hours in a session (int)}
+## examRooms    -- number of exam rooms/patient spaces in area
+## timeShare    -- Boolean denoting whether or not space is shared, max 6 depts total
+## specialtyNeeded--Boolean denoting whether or not there is specialty space
