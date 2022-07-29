@@ -1,0 +1,56 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul 29 08:36:46 2022
+
+@author: rzava
+"""
+
+## Room/Day Function
+#  data(dataframe) with all appointments
+#  dates(string) name of variable in dataframe with dates of apptmts
+#  times(string) name of variable with scheduled times
+#  hours(integer) number of hours in a day clinic is open
+def estimateRooms(data, dates, times, hours):
+    # First find unique dates in dataset
+    dateList = list(set(data[dates]))
+    # Empty list for room estimates
+    rooms = []
+    # for loop iterating over unique dates
+    for i in dateList:
+        # subset df to day i
+        now  = data[data[dates] == i]
+        # total time on appointments
+        apptmt = sum(now[times])
+        # turnover time (# of apptmts * 15 min)
+        turnover = now.shape[0] * 15
+        # append row of date, room formula to output df
+        rooms.append((apptmt + turnover) / (60 * hours))
+    # Output DF of dates w/ room usage
+    letItOut = pd.DataFrame({'Date' : dateList, 
+                                       'Rooms': rooms})
+    return(letItOut)
+
+
+
+
+
+
+
+## Weekdays function
+#  Returns datafram with 'Weekday' column containing day of the week
+
+def getWeekdays(data, dateVar):
+    weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 
+            'Friday', 'Saturday', 'Sunday']
+    dayzNdayz = []
+    hold = []
+    for i in data[dateVar]:
+        date = dt.strptime(i, '%m/%d/%Y')
+        hold.append(date)
+        dayzNdayz.append(weekDays[date.weekday()])
+    data[dateVar] = hold
+    data['Weekday'] = dayzNdayz
+    ## And then sorting so it's not fucky, and rounding decimals so rooms don't 
+    #  freak out business bois for having 4 decimals
+    data = data.sort_values(by = dateVar)
+    return(data)
