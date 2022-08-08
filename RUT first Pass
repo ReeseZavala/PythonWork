@@ -7,9 +7,9 @@ Created on Mon Jul 25 11:37:53 2022
 
 
 
-def RUT(DATA, firstMonday, deptSearch, mainDic, specialDic, examRooms, specialtySpace, 
-        ts1Dic, timeShare = False, specialtyNeeded = False, ts2Dic = None, 
-        ts3Dic = None, ts4Dic = None, ts5Dic = None):
+def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms, 
+        timeShare, specialtyNeeded, ts1Dic = None, ts2Dic = None, 
+        ts3Dic = None, ts4Dic = None, ts5Dic = None, specialDic = None):
     ##################   ENVIRONMENT   ########################
     import pandas as pd                                       #
     import plotly.graph_objs as go                            #
@@ -18,7 +18,7 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, specialDic, examRooms, specialty
     from Functions import estimateRooms, getWeekdays          #
     ###########################################################
 ## Beginning with narrowing down dataset to only departments using the space
-    allDeptsRaw = DATA[~DATA['Department Name'].isin(deptSearch)]
+    allDeptsRaw = DATA[~DATA['Department_Name'].isin(deptSearch)]
 ## Now need to further parse the data if there are timeshares or specialties
     if specialtyNeeded == True:
 ## creating specialAll df for specialty spaces
@@ -36,40 +36,35 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, specialDic, examRooms, specialty
         mainIPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(mainDic['In Person'])]
         mainTHE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(mainDic['Virtual'])]
         ## Timeshare 1##
-        ts1All = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts1Dic['Virtual'] 
-                                                            + ts1Dic['In Person'])]
-        ts1IPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts1Dic['In Person'])]
-        ts1THE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts1Dic['Virtual'])]
+        ts1All = allDeptsRaw[allDeptsRaw['Department_Name'].str.contains(ts1Dic['Name'])]
+        ts1IPE = ts1All[ts1All['Visit_ID'].isin(ts1Dic['In Person'])]
+        ts1THE = ts1All[ts1All['Visit_ID'].isin(ts1Dic['Virtual'])]
         try:
             ## Timeshare 2##
-            ts2All = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts2Dic['Virtual'] 
-                                                                + ts2Dic['In Person'])]
-            ts2IPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts2Dic['In Person'])]
-            ts2THE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts2Dic['Virtual'])]
+            ts2All = allDeptsRaw[allDeptsRaw['Department_Name'].str.contains(ts2Dic['Name'])]
+            ts2IPE = ts2All[ts2All['Visit_ID'].isin(ts2Dic['In Person'])]
+            ts2THE = ts2All[ts2All['Visit_ID'].isin(ts2Dic['Virtual'])]
         except:
             pass
         try:
             ## Timeshare 3##
-            ts3All = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts3Dic['Virtual'] 
-                                                                + ts3Dic['In Person'])]
-            ts3IPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts3Dic['In Person'])]
-            ts3THE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts3Dic['Virtual'])]
+            ts3All = allDeptsRaw[allDeptsRaw['Department_Name'].str.contains(ts3Dic['Name'])]
+            ts3IPE = ts3All[ts3All['Visit_ID'].isin(ts3Dic['In Person'])]
+            ts3THE = ts3All[ts3All['Visit_ID'].isin(ts3Dic['Virtual'])]
         except: 
             pass
         try:
             ## Timeshare 4##
-            ts4All = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts4Dic['Virtual'] 
-                                                                + ts4Dic['In Person'])]
-            ts4IPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts4Dic['In Person'])]
-            ts4THE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts4Dic['Virtual'])]
+            ts4All = allDeptsRaw[allDeptsRaw['Department_Name'].str.contains(ts4Dic['Name'])]
+            ts4IPE = ts4All[ts4All['Visit_ID'].isin(ts4Dic['In Person'])]
+            ts4THE = ts4All[ts4All['Visit_ID'].isin(ts4Dic['Virtual'])]
         except:
             pass
         try:
             ## Timeshare 5##
-            ts5All = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts5Dic['Virtual'] 
-                                                                + ts5Dic['In Person'])]
-            ts5IPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts5Dic['In Person'])]
-            ts5THE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(ts5Dic['Virtual'])]
+            ts5All = allDeptsRaw[allDeptsRaw['Department_Name'].str.contains(ts5Dic['Name'])]
+            ts5IPE = ts5All[ts5All['Visit_ID'].isin(ts5Dic['In Person'])]
+            ts5THE = ts5All[ts5All['Visit_ID'].isin(ts5Dic['Virtual'])]
         except:
             pass
 ## Room Estimation Function
@@ -525,16 +520,16 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, specialDic, examRooms, specialty
     dayEx.update_yaxes(showline = True, linewidth = 2, linecolor = 'black')
     ## Add rooms available
     dayEx.add_trace(go.Scatter(x = examDays['Day'], 
-                                y = np.repeat(6, len(examDays['Day'])), 
+                                y = np.repeat(examRooms, len(examDays['Day'])), 
                                 line_dash="dash", 
                                 line_color="yellow", 
                                 #hover_data = "Chairs Available"
                                 showlegend = True,
-                                name = "Chairs Available")
+                                name = "Rooms Available")
                      )
     ## Add 80% Benchmark
     dayEx.add_trace(go.Scatter(x = examDays['Day'], 
-                               y = np.repeat(5, len(examDays['Day'])), 
+                               y = np.repeat(np.ceil(examRooms * .8), len(examDays['Day'])), 
                                line_dash="dash", 
                                line_color="gold", 
                                #hover_data = "Chairs Available"
