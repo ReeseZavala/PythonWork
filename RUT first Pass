@@ -549,14 +549,17 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
 
 
 
+
 ## DATA         -- dataset from Epic, structured with proper column names
 ## deptSearch   -- list of strings, full department names in Epic
 ## All Dics     -- dictionaries formatted {"Name" : "Name of Department", 
+##                                         'lookUp': 'actual department name', 
 ##                                         "Virtual: [virtual visti epic codes]
 ##                                         "In Person":[in person visit codes],
 ##                                         "Hours" : hours in a session (int)}
 ## SpecialDic   -- dictionary formatted {"Name" : "Name of specialty",
 ##                                       "Codes": [list of Epic codes],
+##                                       'lookUp': 'actual Department Name'
 ##                                       "Hours": hours in a session (int)
 ##                                       "Spaces": number of spaces alotted}
 ## examRooms    -- number of exam rooms/patient spaces in area
