@@ -17,26 +17,25 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
     import plotly.express as px                               #
     from Functions import estimateRooms, getWeekdays          #
     ###########################################################
-## Beginning with narrowing down dataset to only departments using the space
-    allDeptsRaw = DATA[~DATA['Department_Name'].isin(deptSearch)]
-## Now need to further parse the data if there are timeshares or specialties
+    ## Beginning with narrowing down dataset to only departments using the space
+    allDeptsRaw = DATA[DATA['Department_Name'].isin(deptSearch)]
+    ## Now need to further parse the data if there are timeshares or specialties
     if specialtyNeeded == True:
-## creating specialAll df for specialty spaces
-#  resetting allDeptsRaw to not include specialties
-        specialAll = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(specialDic["Codes"])]
+    ## creating specialAll df for specialty spaces
+    #  resetting allDeptsRaw to not include specialties
+        specialAll = allDeptsRaw[allDeptsRaw['Department_Name'] == specialDic['lookUp']]
         allDeptsRaw = allDeptsRaw[~allDeptsRaw['Visit_ID'].isin(specialDic["Codes"])]
     else:
         pass
-
+    
     if timeShare == True:
-## dividing each timeshare into its own dfs
-#  All--all exams, IPE--in person exams, THE--telehealth exams
-        mainAll = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(mainDic['Virtual'] 
-                                                            + mainDic['In Person'])]
-        mainIPE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(mainDic['In Person'])]
-        mainTHE = allDeptsRaw[allDeptsRaw['Visit_ID'].isin(mainDic['Virtual'])]
+    ## dividing each timeshare into its own dfs
+    #  All--all exams, IPE--in person exams, THE--telehealth exams
+        mainAll = allDeptsRaw[allDeptsRaw['Department_Name'] == mainDic['lookUp']]
+        mainIPE = mainAll[mainAll['Visit_ID'].isin(mainDic['In Person'])]
+        mainTHE = mainAll[mainAll['Visit_ID'].isin(mainDic['Virtual'])]
         ## Timeshare 1##
-        ts1All = allDeptsRaw[allDeptsRaw['Department_Name'].str.contains(ts1Dic['Name'])]
+        ts1All = allDeptsRaw[allDeptsRaw['Department_Name'] == ts1Dic['lookUp']]
         ts1IPE = ts1All[ts1All['Visit_ID'].isin(ts1Dic['In Person'])]
         ts1THE = ts1All[ts1All['Visit_ID'].isin(ts1Dic['Virtual'])]
         try:
@@ -67,40 +66,40 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
             ts5THE = ts5All[ts5All['Visit_ID'].isin(ts5Dic['Virtual'])]
         except:
             pass
-## Room Estimation Function
+    ## Room Estimation Function
         mainAllRooms = estimateRooms(data = mainAll, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
         mainIPERooms = estimateRooms(data = mainIPE, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
         mainTHERooms = estimateRooms(data = mainTHE, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
-## breakdown and department
+    ## breakdown and department
         mainAllRooms = mainAllRooms.assign(Breakdown = 'All Exam Visits')
-        mainIPERooms = mainAllRooms.assign(Breakdown = mainDic['Name'] + ': In Person Exam Visits')
-        mainTHERooms = mainAllRooms.assign(Breakdown = mainDic['Name'] + ': Tele-Exam Visits')
+        mainIPERooms = mainIPERooms.assign(Breakdown = mainDic['Name'] + ': In Person Exam Visits')
+        mainTHERooms = mainTHERooms.assign(Breakdown = mainDic['Name'] + ': Tele-Exam Visits')
         mainAllRooms = mainAllRooms.assign(Department = mainDic['Name'])
-        mainIPERooms = mainAllRooms.assign(Department = mainDic['Name'])
-        mainTHERooms = mainAllRooms.assign(Department = mainDic['Name'])
+        mainIPERooms = mainIPERooms.assign(Department = mainDic['Name'])
+        mainTHERooms = mainTHERooms.assign(Department = mainDic['Name'])
         ## Timeshare 1##
         ts1AllRooms = estimateRooms(data = ts1All, dates = 'Date', times = 'Appointment_Length', hours = ts1Dic["Hours"])
         ts1IPERooms = estimateRooms(data = ts1IPE, dates = 'Date', times = 'Appointment_Length', hours = ts1Dic["Hours"])
         ts1THERooms = estimateRooms(data = ts1THE, dates = 'Date', times = 'Appointment_Length', hours = ts1Dic["Hours"])
-## breakdown and department
+    ## breakdown and department
         ts1AllRooms = ts1AllRooms.assign(Breakdown = 'All Exam Visits')
-        ts1IPERooms = ts1AllRooms.assign(Breakdown = ts1Dic['Name'] + ': In Person Exam Visits')
-        ts1THERooms = ts1AllRooms.assign(Breakdown = ts1Dic['Name'] + ': Tele-Exam Visits')
+        ts1IPERooms = ts1IPERooms.assign(Breakdown = ts1Dic['Name'] + ': In Person Exam Visits')
+        ts1THERooms = ts1THERooms.assign(Breakdown = ts1Dic['Name'] + ': Tele-Exam Visits')
         ts1AllRooms = ts1AllRooms.assign(Department = ts1Dic['Name'])
-        ts1IPERooms = ts1AllRooms.assign(Department = ts1Dic['Name'])
-        ts1THERooms = ts1AllRooms.assign(Department = ts1Dic['Name'])
+        ts1IPERooms = ts1IPERooms.assign(Department = ts1Dic['Name'])
+        ts1THERooms = ts1THERooms.assign(Department = ts1Dic['Name'])
         ## Timeshare 2##
         try:
             ts2AllRooms = estimateRooms(data = ts2All, dates = 'Date', times = 'Appointment_Length', hours = ts2Dic["Hours"])
             ts2IPERooms = estimateRooms(data = ts2IPE, dates = 'Date', times = 'Appointment_Length', hours = ts2Dic["Hours"])
             ts2THERooms = estimateRooms(data = ts2THE, dates = 'Date', times = 'Appointment_Length', hours = ts2Dic["Hours"])
-## breakdown and department
+    ## breakdown and department
             ts2AllRooms = ts2AllRooms.assign(Breakdown = 'All Exam Visits')
-            ts2IPERooms = ts2AllRooms.assign(Breakdown = ts2Dic['Name'] + ': In Person Exam Visits')
-            ts2THERooms = ts2AllRooms.assign(Breakdown = ts2Dic['Name'] + ': Tele-Exam Visits')
+            ts2IPERooms = ts2IPERooms.assign(Breakdown = ts2Dic['Name'] + ': In Person Exam Visits')
+            ts2THERooms = ts2THERooms.assign(Breakdown = ts2Dic['Name'] + ': Tele-Exam Visits')
             ts2AllRooms = ts2AllRooms.assign(Department = ts2Dic['Name'])
-            ts2IPERooms = ts2AllRooms.assign(Department = ts2Dic['Name'])
-            ts2THERooms = ts2AllRooms.assign(Department = ts2Dic['Name'])
+            ts2IPERooms = ts2IPERooms.assign(Department = ts2Dic['Name'])
+            ts2THERooms = ts2THERooms.assign(Department = ts2Dic['Name'])
         except:
             ts2AllRooms = None
             ts2IPERooms = None
@@ -110,13 +109,13 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
             ts3AllRooms = estimateRooms(data = ts3All, dates = 'Date', times = 'Appointment_Length', hours = ts3Dic["Hours"])
             ts3IPERooms = estimateRooms(data = ts3IPE, dates = 'Date', times = 'Appointment_Length', hours = ts3Dic["Hours"])
             ts3THERooms = estimateRooms(data = ts3THE, dates = 'Date', times = 'Appointment_Length', hours = ts3Dic["Hours"])
-## breakdown and department
+    ## breakdown and department
             ts3AllRooms = ts3AllRooms.assign(Breakdown = 'All Exam Visits')
-            ts3IPERooms = ts3AllRooms.assign(Breakdown = ts3Dic['Name'] + ': In Person Exam Visits')
-            ts3THERooms = ts3AllRooms.assign(Breakdown = ts3Dic['Name'] + ': Tele-Exam Visits')
+            ts3IPERooms = ts3IPERooms.assign(Breakdown = ts3Dic['Name'] + ': In Person Exam Visits')
+            ts3THERooms = ts3THERooms.assign(Breakdown = ts3Dic['Name'] + ': Tele-Exam Visits')
             ts3AllRooms = ts3AllRooms.assign(Department = ts3Dic['Name'])
-            ts3IPERooms = ts3AllRooms.assign(Department = ts3Dic['Name'])
-            ts3THERooms = ts3AllRooms.assign(Department = ts3Dic['Name'])
+            ts3IPERooms = ts3IPERooms.assign(Department = ts3Dic['Name'])
+            ts3THERooms = ts3THERooms.assign(Department = ts3Dic['Name'])
         except:
             ts3AllRooms = None
             ts3IPERooms = None
@@ -126,13 +125,13 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
             ts4AllRooms = estimateRooms(data = ts4All, dates = 'Date', times = 'Appointment_Length', hours = ts4Dic["Hours"])
             ts4IPERooms = estimateRooms(data = ts4IPE, dates = 'Date', times = 'Appointment_Length', hours = ts4Dic["Hours"])
             ts4THERooms = estimateRooms(data = ts4THE, dates = 'Date', times = 'Appointment_Length', hours = ts4Dic["Hours"])
-## breakdown and department
+    ## breakdown and department
             ts4AllRooms = ts4AllRooms.assign(Breakdown = 'All Exam Visits')
-            ts4IPERooms = ts4AllRooms.assign(Breakdown = ts4Dic['Name'] + ': In Person Exam Visits')
-            ts4THERooms = ts4AllRooms.assign(Breakdown = ts4Dic['Name'] + ': Tele-Exam Visits')
+            ts4IPERooms = ts4IPERooms.assign(Breakdown = ts4Dic['Name'] + ': In Person Exam Visits')
+            ts4THERooms = ts4THERooms.assign(Breakdown = ts4Dic['Name'] + ': Tele-Exam Visits')
             ts4AllRooms = ts4AllRooms.assign(Department = ts4Dic['Name'])
-            ts4IPERooms = ts4AllRooms.assign(Department = ts4Dic['Name'])
-            ts4THERooms = ts4AllRooms.assign(Department = ts4Dic['Name'])
+            ts4IPERooms = ts4IPERooms.assign(Department = ts4Dic['Name'])
+            ts4THERooms = ts4THERooms.assign(Department = ts4Dic['Name'])
         except:
             ts4AllRooms = None
             ts4IPERooms = None
@@ -142,18 +141,18 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
             ts5AllRooms = estimateRooms(data = ts5All, dates = 'Date', times = 'Appointment_Length', hours = ts5Dic["Hours"])
             ts5IPERooms = estimateRooms(data = ts5IPE, dates = 'Date', times = 'Appointment_Length', hours = ts5Dic["Hours"])
             ts5THERooms = estimateRooms(data = ts5THE, dates = 'Date', times = 'Appointment_Length', hours = ts5Dic["Hours"])
-## breakdown and department
+    ## breakdown and department
             ts5AllRooms = ts5AllRooms.assign(Breakdown = 'All Exam Visits')
-            ts5IPERooms = ts5AllRooms.assign(Breakdown = ts1Dic['Name'] + ': In Person Exam Visits')
-            ts5THERooms = ts5AllRooms.assign(Breakdown = ts1Dic['Name'] + ': Tele-Exam Visits')
-            ts5AllRooms = ts5AllRooms.assign(Department = ts1Dic['Name'])
-            ts5IPERooms = ts5AllRooms.assign(Department = ts1Dic['Name'])
-            ts5THERooms = ts5AllRooms.assign(Department = ts1Dic['Name'])
+            ts5IPERooms = ts5IPERooms.assign(Breakdown = ts5Dic['Name'] + ': In Person Exam Visits')
+            ts5THERooms = ts5THERooms.assign(Breakdown = ts5Dic['Name'] + ': Tele-Exam Visits')
+            ts5AllRooms = ts5AllRooms.assign(Department = ts5Dic['Name'])
+            ts5IPERooms = ts5IPERooms.assign(Department = ts5Dic['Name'])
+            ts5THERooms = ts5THERooms.assign(Department = ts5Dic['Name'])
         except:
             ts5AllRooms = None
             ts5IPERooms = None
             ts5THERooms = None
-## Now to push it all into one DF
+    ## Now to push it all into one DF
         Exams = pd.concat([mainAllRooms, mainIPERooms, mainTHERooms,
                            ts1AllRooms, ts1IPERooms, ts1THERooms,
                            ts2AllRooms, ts2IPERooms, ts2THERooms,
@@ -164,7 +163,7 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
         mainAllRooms = estimateRooms(data = allDeptsRaw, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
         mainIPERooms = estimateRooms(data = allDeptsRaw, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
         mainTHERooms = estimateRooms(data = allDeptsRaw, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
-## Adding breakdowns and departments
+    ## Adding breakdowns and departments
         ## Main, breakdown then Dept
         mainAllRooms = mainAllRooms.assign(Breakdown = 'All Exam Visits')
         mainIPERooms = mainAllRooms.assign(Breakdown = mainDic['Name'] + ': In Person Exam Visits')
@@ -172,17 +171,20 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
         mainAllRooms = mainAllRooms.assign(Department = mainDic['Name'])
         mainIPERooms = mainAllRooms.assign(Department = mainDic['Name'])
         mainTHERooms = mainAllRooms.assign(Department = mainDic['Name'])
-## Now to push it all into one DF
+    ## Now to push it all into one DF
         Exams = pd.concat([mainAllRooms, mainIPERooms, mainTHERooms])
-## So now the Exams will always work cuz I'm a fucking genus
-## Moving on to last housekeeping things--weekdays, reset index
+    ## So now the Exams will always work cuz I'm a fucking genus
+    ## Moving on to last housekeeping things--weekdays, reset index
     if specialtyNeeded == True:
+                specialAll  = estimateRooms(data = specialAll, dates = 'Date', 
+                                            times = 'Appointment_Length', 
+                                            hours = specialDic["Hours"])
                 specialAll  = getWeekdays(specialAll, 'Date')
                 specialAll  = specialAll.reset_index()
-
+    
     Exams       = getWeekdays(Exams, 'Date')
     Exams       = Exams.reset_index()
-    examsAll    = Exams[~Exams['Breakdown'] == 'All Exam Visits']
+    examsAll    = Exams[Exams['Breakdown'] != 'All Exam Visits']
     dayzz = list(set(Exams['Weekday']))
 ###############################################################################
 ############################     PLOTS     ####################################
@@ -279,14 +281,14 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
             # subset df to day i
             now  = specialAll[specialAll['Weekday'] == i]
             # total time on appointments
-            rooms.append(np.mean(now['Spaces']))
+            rooms.append(np.mean(now['Space']))
         
         infDays = pd.DataFrame({'Day' : dayzz, 
                                  'Spaces': rooms})
         infDays = infDays.round(2)
         
         
-        dayInf = px.bar(infDays, x = 'Day', y = 'Chairs')
+        dayInf = px.bar(infDays, x = 'Day', y = 'Spaces')
         dayInf.update_layout(title = {'text': "Average Infusion Chair Use by Weekday", 
                                      'x': .5, 'y':.95},
                                      plot_bgcolor = "white",
