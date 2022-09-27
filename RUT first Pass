@@ -7,69 +7,71 @@ Created on Mon Jul 25 11:37:53 2022
 
 
 
-def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms, 
+def RUT(DATA, plotFolder, firstMonday, deptSearch, mainDic, examRooms, 
         timeShare, specialtyNeeded, ts1Dic = None, ts2Dic = None, 
         ts3Dic = None, ts4Dic = None, ts5Dic = None, specialDic = None):
     ##################   ENVIRONMENT   ########################
     import pandas as pd                                       #
-    import plotly.graph_objs as go                            #
+    import plotly.graph_objects as go                         #
     import numpy as np                                        #
     import plotly.express as px                               #
     from Functions import estimateRooms, getWeekdays          #
+    import os                                                 #
+    from dateutil.relativedelta import relativedelta          #
     ###########################################################
     ## Beginning with narrowing down dataset to only departments using the space
-    allDeptsRaw = DATA[DATA['Department_Name'].isin(deptSearch)]
+    allDeptsRaw = DATA[DATA['DepartmentName'].isin(deptSearch)]
     ## Now need to further parse the data if there are timeshares or specialties
     if specialtyNeeded == True:
     ## creating specialAll df for specialty spaces
     #  resetting allDeptsRaw to not include specialties
-        specialAll = allDeptsRaw[allDeptsRaw['Department_Name'] == specialDic['lookUp']]
-        allDeptsRaw = allDeptsRaw[~allDeptsRaw['Visit_ID'].isin(specialDic["Codes"])]
+        specialAll = allDeptsRaw[allDeptsRaw['DepartmentName'].isin(specialDic['lookUp'])]
+        allDeptsRaw = allDeptsRaw[~allDeptsRaw['VisitTypeEpicId'].isin(specialDic["lookUp"])]
     else:
         pass
     
     if timeShare == True:
     ## dividing each timeshare into its own dfs
     #  All--all exams, IPE--in person exams, THE--telehealth exams
-        mainAll = allDeptsRaw[allDeptsRaw['Department_Name'] == mainDic['lookUp']]
-        mainIPE = mainAll[mainAll['Visit_ID'].isin(mainDic['In Person'])]
-        mainTHE = mainAll[mainAll['Visit_ID'].isin(mainDic['Virtual'])]
+        mainAll = allDeptsRaw[allDeptsRaw['DepartmentName'].isin(mainDic['lookUp'])]
+        mainIPE = mainAll[mainAll['VisitTypeEpicId'].isin(mainDic['In Person'])]
+        mainTHE = mainAll[mainAll['VisitTypeEpicId'].isin(mainDic['Virtual'])]
         ## Timeshare 1##
-        ts1All = allDeptsRaw[allDeptsRaw['Department_Name'] == ts1Dic['lookUp']]
-        ts1IPE = ts1All[ts1All['Visit_ID'].isin(ts1Dic['In Person'])]
-        ts1THE = ts1All[ts1All['Visit_ID'].isin(ts1Dic['Virtual'])]
+        ts1All = allDeptsRaw[allDeptsRaw['DepartmentName'].isin(ts1Dic['lookUp'])]
+        ts1IPE = ts1All[ts1All['VisitTypeEpicId'].isin(ts1Dic['In Person'])]
+        ts1THE = ts1All[ts1All['VisitTypeEpicId'].isin(ts1Dic['Virtual'])]
         try:
             ## Timeshare 2##
-            ts2All = allDeptsRaw[allDeptsRaw['Department_Name'].str.contains(ts2Dic['Name'])]
-            ts2IPE = ts2All[ts2All['Visit_ID'].isin(ts2Dic['In Person'])]
-            ts2THE = ts2All[ts2All['Visit_ID'].isin(ts2Dic['Virtual'])]
+            ts2All = allDeptsRaw[allDeptsRaw['DepartmentName'].str.contains(ts2Dic['Name'])]
+            ts2IPE = ts2All[ts2All['VisitTypeEpicId'].isin(ts2Dic['In Person'])]
+            ts2THE = ts2All[ts2All['VisitTypeEpicId'].isin(ts2Dic['Virtual'])]
         except:
             pass
         try:
             ## Timeshare 3##
-            ts3All = allDeptsRaw[allDeptsRaw['Department_Name'].str.contains(ts3Dic['Name'])]
-            ts3IPE = ts3All[ts3All['Visit_ID'].isin(ts3Dic['In Person'])]
-            ts3THE = ts3All[ts3All['Visit_ID'].isin(ts3Dic['Virtual'])]
+            ts3All = allDeptsRaw[allDeptsRaw['DepartmentName'].str.contains(ts3Dic['Name'])]
+            ts3IPE = ts3All[ts3All['VisitTypeEpicId'].isin(ts3Dic['In Person'])]
+            ts3THE = ts3All[ts3All['VisitTypeEpicId'].isin(ts3Dic['Virtual'])]
         except: 
             pass
         try:
             ## Timeshare 4##
-            ts4All = allDeptsRaw[allDeptsRaw['Department_Name'].str.contains(ts4Dic['Name'])]
-            ts4IPE = ts4All[ts4All['Visit_ID'].isin(ts4Dic['In Person'])]
-            ts4THE = ts4All[ts4All['Visit_ID'].isin(ts4Dic['Virtual'])]
+            ts4All = allDeptsRaw[allDeptsRaw['DepartmentName'].str.contains(ts4Dic['Name'])]
+            ts4IPE = ts4All[ts4All['VisitTypeEpicId'].isin(ts4Dic['In Person'])]
+            ts4THE = ts4All[ts4All['VisitTypeEpicId'].isin(ts4Dic['Virtual'])]
         except:
             pass
         try:
             ## Timeshare 5##
-            ts5All = allDeptsRaw[allDeptsRaw['Department_Name'].str.contains(ts5Dic['Name'])]
-            ts5IPE = ts5All[ts5All['Visit_ID'].isin(ts5Dic['In Person'])]
-            ts5THE = ts5All[ts5All['Visit_ID'].isin(ts5Dic['Virtual'])]
+            ts5All = allDeptsRaw[allDeptsRaw['DepartmentName'].str.contains(ts5Dic['Name'])]
+            ts5IPE = ts5All[ts5All['VisitTypeEpicId'].isin(ts5Dic['In Person'])]
+            ts5THE = ts5All[ts5All['VisitTypeEpicId'].isin(ts5Dic['Virtual'])]
         except:
             pass
     ## Room Estimation Function
-        mainAllRooms = estimateRooms(data = mainAll, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
-        mainIPERooms = estimateRooms(data = mainIPE, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
-        mainTHERooms = estimateRooms(data = mainTHE, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
+        mainAllRooms = estimateRooms(data = mainAll, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = mainDic["Hours"])
+        mainIPERooms = estimateRooms(data = mainIPE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = mainDic["Hours"])
+        mainTHERooms = estimateRooms(data = mainTHE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = mainDic["Hours"])
     ## breakdown and department
         mainAllRooms = mainAllRooms.assign(Breakdown = 'All Exam Visits')
         mainIPERooms = mainIPERooms.assign(Breakdown = mainDic['Name'] + ': In Person Exam Visits')
@@ -78,9 +80,9 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
         mainIPERooms = mainIPERooms.assign(Department = mainDic['Name'])
         mainTHERooms = mainTHERooms.assign(Department = mainDic['Name'])
         ## Timeshare 1##
-        ts1AllRooms = estimateRooms(data = ts1All, dates = 'Date', times = 'Appointment_Length', hours = ts1Dic["Hours"])
-        ts1IPERooms = estimateRooms(data = ts1IPE, dates = 'Date', times = 'Appointment_Length', hours = ts1Dic["Hours"])
-        ts1THERooms = estimateRooms(data = ts1THE, dates = 'Date', times = 'Appointment_Length', hours = ts1Dic["Hours"])
+        ts1AllRooms = estimateRooms(data = ts1All, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts1Dic["Hours"])
+        ts1IPERooms = estimateRooms(data = ts1IPE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts1Dic["Hours"])
+        ts1THERooms = estimateRooms(data = ts1THE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts1Dic["Hours"])
     ## breakdown and department
         ts1AllRooms = ts1AllRooms.assign(Breakdown = 'All Exam Visits')
         ts1IPERooms = ts1IPERooms.assign(Breakdown = ts1Dic['Name'] + ': In Person Exam Visits')
@@ -90,9 +92,9 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
         ts1THERooms = ts1THERooms.assign(Department = ts1Dic['Name'])
         ## Timeshare 2##
         try:
-            ts2AllRooms = estimateRooms(data = ts2All, dates = 'Date', times = 'Appointment_Length', hours = ts2Dic["Hours"])
-            ts2IPERooms = estimateRooms(data = ts2IPE, dates = 'Date', times = 'Appointment_Length', hours = ts2Dic["Hours"])
-            ts2THERooms = estimateRooms(data = ts2THE, dates = 'Date', times = 'Appointment_Length', hours = ts2Dic["Hours"])
+            ts2AllRooms = estimateRooms(data = ts2All, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts2Dic["Hours"])
+            ts2IPERooms = estimateRooms(data = ts2IPE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts2Dic["Hours"])
+            ts2THERooms = estimateRooms(data = ts2THE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts2Dic["Hours"])
     ## breakdown and department
             ts2AllRooms = ts2AllRooms.assign(Breakdown = 'All Exam Visits')
             ts2IPERooms = ts2IPERooms.assign(Breakdown = ts2Dic['Name'] + ': In Person Exam Visits')
@@ -106,9 +108,9 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
             ts2THERooms = None
         ## Timeshare 3##
         try:
-            ts3AllRooms = estimateRooms(data = ts3All, dates = 'Date', times = 'Appointment_Length', hours = ts3Dic["Hours"])
-            ts3IPERooms = estimateRooms(data = ts3IPE, dates = 'Date', times = 'Appointment_Length', hours = ts3Dic["Hours"])
-            ts3THERooms = estimateRooms(data = ts3THE, dates = 'Date', times = 'Appointment_Length', hours = ts3Dic["Hours"])
+            ts3AllRooms = estimateRooms(data = ts3All, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts3Dic["Hours"])
+            ts3IPERooms = estimateRooms(data = ts3IPE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts3Dic["Hours"])
+            ts3THERooms = estimateRooms(data = ts3THE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts3Dic["Hours"])
     ## breakdown and department
             ts3AllRooms = ts3AllRooms.assign(Breakdown = 'All Exam Visits')
             ts3IPERooms = ts3IPERooms.assign(Breakdown = ts3Dic['Name'] + ': In Person Exam Visits')
@@ -122,9 +124,9 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
             ts3THERooms = None
         ## Timeshare 4##
         try:
-            ts4AllRooms = estimateRooms(data = ts4All, dates = 'Date', times = 'Appointment_Length', hours = ts4Dic["Hours"])
-            ts4IPERooms = estimateRooms(data = ts4IPE, dates = 'Date', times = 'Appointment_Length', hours = ts4Dic["Hours"])
-            ts4THERooms = estimateRooms(data = ts4THE, dates = 'Date', times = 'Appointment_Length', hours = ts4Dic["Hours"])
+            ts4AllRooms = estimateRooms(data = ts4All, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts4Dic["Hours"])
+            ts4IPERooms = estimateRooms(data = ts4IPE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts4Dic["Hours"])
+            ts4THERooms = estimateRooms(data = ts4THE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts4Dic["Hours"])
     ## breakdown and department
             ts4AllRooms = ts4AllRooms.assign(Breakdown = 'All Exam Visits')
             ts4IPERooms = ts4IPERooms.assign(Breakdown = ts4Dic['Name'] + ': In Person Exam Visits')
@@ -138,9 +140,9 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
             ts4THERooms = None
         ## Timeshare 5##
         try:
-            ts5AllRooms = estimateRooms(data = ts5All, dates = 'Date', times = 'Appointment_Length', hours = ts5Dic["Hours"])
-            ts5IPERooms = estimateRooms(data = ts5IPE, dates = 'Date', times = 'Appointment_Length', hours = ts5Dic["Hours"])
-            ts5THERooms = estimateRooms(data = ts5THE, dates = 'Date', times = 'Appointment_Length', hours = ts5Dic["Hours"])
+            ts5AllRooms = estimateRooms(data = ts5All, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts5Dic["Hours"])
+            ts5IPERooms = estimateRooms(data = ts5IPE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts5Dic["Hours"])
+            ts5THERooms = estimateRooms(data = ts5THE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = ts5Dic["Hours"])
     ## breakdown and department
             ts5AllRooms = ts5AllRooms.assign(Breakdown = 'All Exam Visits')
             ts5IPERooms = ts5IPERooms.assign(Breakdown = ts5Dic['Name'] + ': In Person Exam Visits')
@@ -160,24 +162,28 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
                            ts4AllRooms, ts4IPERooms, ts4THERooms,
                            ts5AllRooms, ts5IPERooms, ts5THERooms])
     else:
-        mainAllRooms = estimateRooms(data = allDeptsRaw, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
-        mainIPERooms = estimateRooms(data = allDeptsRaw, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
-        mainTHERooms = estimateRooms(data = allDeptsRaw, dates = 'Date', times = 'Appointment_Length', hours = mainDic["Hours"])
-    ## Adding breakdowns and departments
+        mainAll = allDeptsRaw[allDeptsRaw['DepartmentName'].isin(mainDic['lookUp'])]
+        mainIPE = mainAll[mainAll['VisitTypeEpicId'].isin(mainDic['In Person'])]
+        mainTHE = mainAll[mainAll['VisitTypeEpicId'].isin(mainDic['Virtual'])]
+        
+        mainAllRooms = estimateRooms(data = allDeptsRaw, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = mainDic["Hours"])
+        mainIPERooms = estimateRooms(data = mainIPE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = mainDic["Hours"])
+        mainTHERooms = estimateRooms(data = mainTHE, dates = 'ApptDate', times = 'AppointmentLengthInMinutes', hours = mainDic["Hours"])
+        ## Adding breakdowns and departments
         ## Main, breakdown then Dept
         mainAllRooms = mainAllRooms.assign(Breakdown = 'All Exam Visits')
-        mainIPERooms = mainAllRooms.assign(Breakdown = mainDic['Name'] + ': In Person Exam Visits')
-        mainTHERooms = mainAllRooms.assign(Breakdown = mainDic['Name'] + ': Tele-Exam Visits')
+        mainIPERooms = mainIPERooms.assign(Breakdown = mainDic['Name'] + ': In Person Exam Visits')
+        mainTHERooms = mainTHERooms.assign(Breakdown = mainDic['Name'] + ': Tele-Exam Visits')
         mainAllRooms = mainAllRooms.assign(Department = mainDic['Name'])
-        mainIPERooms = mainAllRooms.assign(Department = mainDic['Name'])
-        mainTHERooms = mainAllRooms.assign(Department = mainDic['Name'])
+        mainIPERooms = mainIPERooms.assign(Department = mainDic['Name'])
+        mainTHERooms = mainTHERooms.assign(Department = mainDic['Name'])
     ## Now to push it all into one DF
         Exams = pd.concat([mainAllRooms, mainIPERooms, mainTHERooms])
     ## So now the Exams will always work cuz I'm a fucking genus
     ## Moving on to last housekeeping things--weekdays, reset index
     if specialtyNeeded == True:
-                specialAll  = estimateRooms(data = specialAll, dates = 'Date', 
-                                            times = 'Appointment_Length', 
+                specialAll  = estimateRooms(data = specialAll, dates = 'ApptDate', 
+                                            times = 'AppointmentLengthInMinutes', 
                                             hours = specialDic["Hours"])
                 specialAll  = getWeekdays(specialAll, 'Date')
                 specialAll  = specialAll.reset_index()
@@ -186,13 +192,19 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
     Exams       = Exams.reset_index()
     examsAll    = Exams[Exams['Breakdown'] != 'All Exam Visits']
     dayzz = list(set(Exams['Weekday']))
-###############################################################################
-############################     PLOTS     ####################################
-###############################################################################
-## Starting with non-basic plots, using if statements to see if they're necessary
-###############################################################################
+    ## save last day of data set, 3 months before, make teeny dataset
+    lastDay = max(Exams['Date'])
+    threeMonths = lastDay + relativedelta(months=-3)
+    mask = (Exams['Date'] >= threeMonths) & (Exams['Date'] <= lastDay)
+    lilExm = Exams.loc[mask]
+    ###############################################################################
+    ############################     PLOTS     ####################################
+    ###############################################################################
+    ## Starting with non-basic plots, using if statements to see if they're necessary
+    ###############################################################################
+    os.chdir(plotFolder)
     if specialtyNeeded == True:
-###############################################################################
+    ###############################################################################
         specialAll = specialAll.rename(columns = {'Rooms' : 'Space'})
         ## Plot object, changing hover date format
         inFig = px.bar(specialAll, x = "Date", y = "Space", hover_data={"Date":"|%B %d"},
@@ -271,15 +283,20 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
         
         
         inFig.write_html(specialDic['Name'] + " Bars Over Time.html")
-###############################################################################
-##########     AVERAGE PLOT     ###############################################
-###############################################################################
+    ###############################################################################
+    ##########     AVERAGE PLOT     ###############################################
+    ###############################################################################
+        ## save last day of data set, 3 months before, make teeny dataset
+        lastDay = max(Exams['Date'])
+        threeMonths = lastDay + relativedelta(months=-3)
+        mask = (specialAll['Date'] >= threeMonths) & (specialAll['Date'] <= lastDay)
+        lilSpec = specialAll.loc[mask]
         # Empty list for room estimates
         rooms = []
         # for loop iterating over unique dates
         for i in dayzz:
             # subset df to day i
-            now  = specialAll[specialAll['Weekday'] == i]
+            now  = lilSpec[lilSpec['Weekday'] == i]
             # total time on appointments
             rooms.append(np.mean(now['Space']))
         
@@ -289,7 +306,7 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
         
         
         dayInf = px.bar(infDays, x = 'Day', y = 'Spaces')
-        dayInf.update_layout(title = {'text': "Average Infusion Chair Use by Weekday", 
+        dayInf.update_layout(title = {'text': specialDic['Name'] + " Average Estimated Use", 
                                      'x': .5, 'y':.95},
                                      plot_bgcolor = "white",
                                      yaxis_title = "Chairs Used",
@@ -315,11 +332,13 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
                                    showlegend = True,
                                    name = "80% Benchmark")
         )
+        dayInf.update_xaxes(categoryorder='array', categoryarray= 
+                       ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])        
         
         dayInf.write_html("Average " + specialDic['Name'] + " Space by Day.html")
-###############################################################################
+    ###############################################################################
     if timeShare == True:
-###############################################################################
+    ###############################################################################
         allFig = px.bar(examsAll, x = "Date", y = "Rooms", #hover_data={"Date":"|%B %d"},
                         color = "Breakdown", barmode = "stack")
         ## Adding title, title location, blank background, titling axes, TNR font
@@ -396,14 +415,14 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
         
         
         allFig.write_html(mainDic['Name'] + " Timeshare Use by Department.html")
-###############################################################################
-###############################################################################
-###############################################################################
-#########################     REGULAR PLOTS     ###############################
-###############################################################################
-###############################################################################
-###############################################################################
-## Standard Bar Plot, by day of week
+    ###############################################################################
+    ###############################################################################
+    ###############################################################################
+    #########################     REGULAR PLOTS     ###############################
+    ###############################################################################
+    ###############################################################################
+    ###############################################################################
+    ## Standard Bar Plot, by day of week
     allFig = px.bar(examsAll, x = "Date", y = "Rooms", #hover_data={"Date":"|%B %d"},
                     color = "Weekday")
     ## Adding title, title location, blank background, titling axes, TNR font
@@ -480,10 +499,10 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
     
     
     allFig.write_html(mainDic['Name'] + " All Exams By Day.html")
-
-## Average use per day, by department
     
-    dept  = list(set(Exams['Department']))
+    ## Average use per day, by department
+    
+    dept  = list(set(lilExm['Department']))
     # Empty list for room estimates
     rooms = []
     who    = []
@@ -492,7 +511,7 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
     for i in dayzz:
             # subset df to day i
         for j in dept:
-            now  = Exams[Exams['Weekday'] == i]
+            now  = lilExm[lilExm['Weekday'] == i]
             now = now[now['Department'] == j]
             means = np.mean(now['Rooms'])
             # total time on appointments
@@ -538,6 +557,8 @@ def RUT(DATA, firstMonday, deptSearch, mainDic, examRooms,
                                showlegend = True,
                                name = "80% Benchmark")
     )
+    dayEx.update_xaxes(categoryorder='array', categoryarray= 
+                       ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
     
     dayEx.write_html(mainDic['Name'] + " Average Exam Rooms by Day.html")
 
