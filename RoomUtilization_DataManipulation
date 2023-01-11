@@ -1,0 +1,60 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jan  9 11:31:37 2023
+
+@author: rzava
+"""
+
+import os
+## Path to File
+os.chdir('C:\\Users\\rzava\\OneDrive\\Documents\\Work\\SS_Ut')
+import pandas as pd
+import numpy as np
+from dateutil.relativedelta import relativedelta
+from datetime import datetime as dt
+
+totalPeriods = 5
+
+## Load in visit data and Stephanie's df to extract room numbers
+Visits = pd.read_csv("Ambulatory Clinic Visits.csv")
+ssRooms= pd.read_csv("SS_Rooms.csv")
+
+## List of clinics
+clinics = ssRooms["Location"]
+
+## List of dates in date format
+Dates = []
+for d in Visits['Date']:
+    Dates.append(dt.strptime(d, '%m/%d/%y'))
+Visits["Date"] = Dates
+
+## For each clinic, subset df down to each 6mo period, take all the averages
+ # then make each column the name of the clinic, containing all the avgs
+Averages = pd.DataFrame()
+Period = []
+for c in clinics:
+    cAvg = []
+    for i in range(0,totalPeriods):
+        first = Dates[0] + relativedelta(months=(6*i))
+        secnd = Dates[0] + relativedelta(months= (6*(i+1)), days=-1)
+        hold = Visits.loc[(Visits['Date'] >= first)
+                     & (Visits['Date'] < secnd)]
+        cAvg.append(np.mean(hold[c]))
+    Averages[c] = cAvg
+## All NAs to 0s
+Averages = Averages.fillna(0)
+## Periods list
+for i in range(0,totalPeriods):
+        first = Dates[0] + relativedelta(months=(6*i))
+        secnd = Dates[0] + relativedelta(months= (6*(i+1)), days=-1)
+        Period.append(first.strftime('%m/%d/%Y') + "-" + secnd.strftime('%m/%d/%Y'))
+
+
+## Now take the SS Df and create columns for clinic pred and delta
+fullSet = Averages
+fullSet = fullSet.reset_index()
+for c in clinics:
+    fullSet[c + " - Expected"] = [ssRooms.loc[ssRooms["Location"] == c]["Expected number pts"].item()] * totalPeriods
+    fullSet[c + " - Delta"] = fullSet[c] - fullSet[c + " - Expected"]
+fullSet['Period'] = Period
+fullSet.to_csv("Visits_and_Benchmarks_jan0923.csv")
