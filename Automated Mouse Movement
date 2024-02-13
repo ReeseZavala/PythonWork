@@ -1,0 +1,37 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Feb  6 14:42:28 2024
+
+@author: reesezax
+"""
+
+import pyautogui
+import time
+import random
+import sys
+#from datetime import datetime as dt
+
+start = time.time()
+
+def move_mouse_randomly():
+    # Get the screen width and height
+    screen_width, screen_height = pyautogui.size()
+    pyautogui.FAILSAFE = False
+    # Generate random coordinates within the screen boundaries
+    x = random.randint(0, screen_width - 1)
+    y = random.randint(0, screen_height - 1)
+
+    # Move the mouse cursor to the random coordinates
+    # "Right" button to avoid incidental highlighting and dragging
+    pyautogui.dragTo(x, y, button = "middle")
+
+if __name__ == "__main__":
+    # Run the script indefinitely
+    while True and (time.time() - start < 36600):
+        # Move the mouse cursor randomly
+        move_mouse_randomly()
+        
+        # Wait for one minute before the next movement
+        time.sleep(60)
+        
+sys.exit()
