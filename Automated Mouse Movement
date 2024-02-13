@@ -22,7 +22,7 @@ def move_mouse_randomly():
     y = random.randint(0, screen_height - 1)
 
     # Move the mouse cursor to the random coordinates
-    # "Right" button to avoid incidental highlighting and dragging
+    # "middle" button to avoid incidental highlighting and dragging
     pyautogui.dragTo(x, y, button = "middle")
 
 if __name__ == "__main__":
